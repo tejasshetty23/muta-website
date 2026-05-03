@@ -18,6 +18,7 @@ import {
   Zap
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getLeaderboard } from "./lib/api";
 
 const logo = "/muta-cat-logo.jpg";
 
@@ -342,24 +343,58 @@ function Games() {
 }
 
 function BigWins() {
+  const [liveWins, setLiveWins] = useState([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchWins = async () => {
+      const data = await getLeaderboard();
+      if (data && data.length > 0) {
+        const mapped = data.map((item) => ({
+          amount: item.prize,
+          game: item.game,
+          time: `Rank #${item.rank} - ${item.username}`
+        }));
+        setLiveWins(mapped);
+      } else {
+        setLiveWins(wins);
+      }
+      setIsDataLoading(false);
+    };
+    fetchWins();
+    
+    const interval = setInterval(fetchWins, 15 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="section-shell">
-      <SectionTitle eyebrow="Recent big wins" title="Fresh hits" />
+      <SectionTitle eyebrow="Live Leaderboard" title="Fresh hits" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {wins.map((win, index) => (
-          <motion.article
-            key={`${win.amount}-${win.game}`}
-            className="win-card"
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.06 }}
-          >
-            <span>{win.time}</span>
-            <strong>{win.amount}</strong>
-            <p>{win.game}</p>
-          </motion.article>
-        ))}
+        {isDataLoading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="win-card animate-pulse border-white/5 opacity-50">
+              <div className="h-4 w-32 rounded bg-white/10" />
+              <div className="mt-4 h-8 w-24 rounded bg-white/10" />
+              <div className="mt-2 h-4 w-20 rounded bg-white/10" />
+            </div>
+          ))
+        ) : (
+          liveWins.map((win, index) => (
+            <motion.article
+              key={`${win.amount}-${win.game}-${index}`}
+              className="win-card"
+              initial={{ opacity: 0, y: 22 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.06 }}
+            >
+              <span>{win.time}</span>
+              <strong>{win.amount}</strong>
+              <p>{win.game}</p>
+            </motion.article>
+          ))
+        )}
       </div>
     </section>
   );
