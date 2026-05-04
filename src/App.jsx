@@ -12,39 +12,26 @@ import {
   Gem,
   MessageCircle,
   Radio,
+  Search,
   Send,
   Sparkles,
   Trophy,
   Zap
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { getLeaderboard } from "./lib/api";
+import { useMutaData } from "./useMutaData";
+import { getLeaderboard } from "./mutaData";
 
 const logo = "/muta-cat-logo.jpg";
 
-const stats = [
-  { label: "Total Winnings", value: 12840, prefix: "$" },
-  { label: "Biggest Win", value: 1865, prefix: "$" },
-  { label: "Current Balance", value: 427, prefix: "$" }
-];
-
-const games = [
-  { title: "Neon Reels", meta: "96.8% RTP", icon: Zap, gradient: "from-fuchsia-500 via-violet-500 to-cyan-400" },
-  { title: "Cat Jackpot", meta: "Live bonus", icon: Crown, gradient: "from-pink-500 via-purple-500 to-indigo-500" },
-  { title: "Pulse Dice", meta: "Turbo mode", icon: Disc3, gradient: "from-blue-500 via-fuchsia-500 to-pink-500" },
-  { title: "Void Crash", meta: "High risk", icon: Flame, gradient: "from-violet-500 via-pink-500 to-amber-300" },
-  { title: "Cyber Mines", meta: "Max hunt", icon: Gem, gradient: "from-cyan-400 via-violet-500 to-fuchsia-500" },
-  { title: "Moon Spin", meta: "Streamer pick", icon: Gamepad2, gradient: "from-indigo-500 via-purple-500 to-pink-500" }
-];
-
-const wins = [
-  { amount: "$248.80", game: "Neon Reels", time: "2 min ago" },
-  { amount: "$184.20", game: "Void Crash", time: "7 min ago" },
-  { amount: "$413.00", game: "Cat Jackpot", time: "18 min ago" },
-  { amount: "$97.60", game: "Cyber Mines", time: "31 min ago" },
-  { amount: "$321.10", game: "Moon Spin", time: "44 min ago" },
-  { amount: "$125.40", game: "Pulse Dice", time: "1 hr ago" }
-];
+// Icon mapping for partner-based game cards
+const PARTNER_ICONS = {
+  Shuffle: Zap,
+  PackDraw: Crown,
+  SkinRave: Gem,
+  Dejen: Flame,
+};
+const DEFAULT_ICON = Gamepad2;
 
 function LogoMark({ className = "" }) {
   return (
@@ -162,6 +149,7 @@ function Nav() {
           <a className="nav-link" href="#live">Live</a>
           <a className="nav-link" href="#stats">Stats</a>
           <a className="nav-link" href="#games">Games</a>
+          <a className="nav-link" href="#leaderboard">Leaderboard</a>
           <a className="nav-link" href="#community">Social</a>
         </div>
         <div className="flex items-center gap-4">
@@ -219,8 +207,8 @@ function Hero() {
         </motion.div>
 
         <motion.div className="mt-9 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.42 }}>
-          <a className="button-primary justify-center" href="#live"><CirclePlay size={20} /> Watch Stream</a>
-          <a className="button-secondary justify-center" href="https://discord.com/" target="_blank" rel="noreferrer"><MessageCircle size={20} /> Join Discord</a>
+          <a className="button-primary justify-center" href="https://kick.com/muta11" target="_blank" rel="noreferrer"><CirclePlay size={20} /> Watch Stream</a>
+          <a className="button-secondary justify-center" href="https://discord.com/invite/C3QyjybcKP" target="_blank" rel="noreferrer"><MessageCircle size={20} /> Join Discord</a>
         </motion.div>
       </div>
     </section>
@@ -231,8 +219,8 @@ function SectionTitle({ eyebrow, title }) {
   return (
     <div className="mb-9 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-200">{eyebrow}</p>
-        <h2 className="mt-3 text-3xl font-black uppercase text-white sm:text-5xl">{title}</h2>
+        {eyebrow && <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-200">{eyebrow}</p>}
+        <h2 className={`text-3xl font-black uppercase text-white sm:text-5xl ${eyebrow ? 'mt-3' : ''}`}>{title}</h2>
       </div>
     </div>
   );
@@ -241,7 +229,7 @@ function SectionTitle({ eyebrow, title }) {
 function LiveStream() {
   return (
     <section id="live" className="section-shell">
-      <SectionTitle eyebrow="Broadcast" title="MUTA is live" />
+      <SectionTitle title="Stream" />
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         <div className="stream-frame">
           <div className="stream-fallback" aria-hidden="true">
@@ -308,10 +296,10 @@ function Counter({ stat }) {
   );
 }
 
-function StatsPanel() {
+function StatsPanel({ stats }) {
   return (
     <section id="stats" className="section-shell">
-      <SectionTitle eyebrow="High dopamine metrics" title="Numbers that glow" />
+      <SectionTitle title="Leaderboard Stats" />
       <div className="grid gap-4 md:grid-cols-3">
         {stats.map((stat) => <Counter key={stat.label} stat={stat} />)}
       </div>
@@ -319,13 +307,13 @@ function StatsPanel() {
   );
 }
 
-function Games() {
+function Games({ games }) {
   return (
     <section id="games" className="section-shell overflow-hidden">
-      <SectionTitle eyebrow="Featured slots" title="Hot rotation" />
+      <SectionTitle title="Partners" />
       <div className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-3">
         {games.map((game) => {
-          const Icon = game.icon;
+          const Icon = PARTNER_ICONS[game.title] || DEFAULT_ICON;
           return (
             <motion.article key={game.title} className="game-card snap-start" whileHover={{ y: -10, scale: 1.035 }}>
               <div className={`game-art bg-gradient-to-br ${game.gradient}`}>
@@ -342,70 +330,136 @@ function Games() {
   );
 }
 
-function BigWins() {
-  const [liveWins, setLiveWins] = useState([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+const RANK_LABELS = ["1st", "2nd", "3rd"];
+const CROWN_EMOJIS = ["👑", "🥈", "🥉"];
 
-  useEffect(() => {
-    const fetchWins = async () => {
-      const data = await getLeaderboard();
-      if (data && data.length > 0) {
-        const mapped = data.map((item) => ({
-          amount: item.prize,
-          game: item.game,
-          time: `Rank #${item.rank} - ${item.username}`
-        }));
-        setLiveWins(mapped);
-      } else {
-        setLiveWins(wins);
-      }
-      setIsDataLoading(false);
-    };
-    fetchWins();
-    
-    const interval = setInterval(fetchWins, 15 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
+function Leaderboard({ partners }) {
+  const [activeTab, setActiveTab] = useState(0);
+  const [search, setSearch] = useState("");
+
+  const activePartner = partners[activeTab];
+  const entries = getLeaderboard(activePartner?.name || "");
+  const top3 = entries.slice(0, 3);
+  const rest = entries.slice(3);
+
+  const filteredRest = search
+    ? rest.filter((e) => e.username.toLowerCase().includes(search.toLowerCase()))
+    : rest;
+
+  // Podium order: 2nd, 1st, 3rd
+  const podiumOrder = top3.length >= 3
+    ? [top3[1], top3[0], top3[2]]
+    : top3;
 
   return (
-    <section className="section-shell">
-      <SectionTitle eyebrow="Live Leaderboard" title="Fresh hits" />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {isDataLoading ? (
-          Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="win-card animate-pulse border-white/5 opacity-50">
-              <div className="h-4 w-32 rounded bg-white/10" />
-              <div className="mt-4 h-8 w-24 rounded bg-white/10" />
-              <div className="mt-2 h-4 w-20 rounded bg-white/10" />
-            </div>
-          ))
-        ) : (
-          liveWins.map((win, index) => (
-            <motion.article
-              key={`${win.amount}-${win.game}-${index}`}
-              className="win-card"
-              initial={{ opacity: 0, y: 22 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.06 }}
-            >
-              <span>{win.time}</span>
-              <strong>{win.amount}</strong>
-              <p>{win.game}</p>
-            </motion.article>
-          ))
-        )}
+    <section id="leaderboard" className="section-shell">
+      <SectionTitle eyebrow="Competition" title="Leaderboards" />
+
+      {/* Partner Tabs */}
+      <div className="lb-tabs">
+        {partners.map((partner, idx) => (
+          <button
+            key={partner.name}
+            className={`lb-tab ${idx === activeTab ? "active" : ""}`}
+            onClick={() => { setActiveTab(idx); setSearch(""); }}
+          >
+            {partner.name}
+          </button>
+        ))}
       </div>
+
+      {/* Prize Pool Banner */}
+      {activePartner && (
+        <div className="lb-pool-banner">
+          <span>Prize Pool</span>
+          <strong>${activePartner.leaderboardTotal.toLocaleString()}</strong>
+          <span>•</span>
+          <span>Code: {activePartner.code}</span>
+        </div>
+      )}
+
+      {/* Top 3 Podium */}
+      {top3.length >= 3 && (
+        <div className="lb-podium">
+          {podiumOrder.map((entry, i) => {
+            const realIndex = i === 0 ? 1 : i === 1 ? 0 : 2;
+            const isGold = realIndex === 0;
+            return (
+              <motion.div
+                key={entry.username}
+                className={`lb-podium-card ${isGold ? "gold" : ""}`}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <span className="lb-crown">{CROWN_EMOJIS[realIndex]}</span>
+                <span className="lb-rank-label">{RANK_LABELS[realIndex]}</span>
+                <span className="lb-username">{entry.username}</span>
+                <span className="lb-wagered-small">${entry.wagered.toLocaleString()}</span>
+                <span className="lb-prize-big">${entry.reward.toLocaleString()}</span>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="lb-search">
+        <Search size={18} />
+        <input
+          type="text"
+          placeholder="Search username..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* Table */}
+      {filteredRest.length > 0 && (
+        <div className="lb-table">
+          <div className="lb-table-head">
+            <span>Rank</span>
+            <span>Player</span>
+            <span>Wagered</span>
+            <span style={{ textAlign: "right" }}>Prize</span>
+          </div>
+          {filteredRest.map((entry, i) => (
+            <motion.div
+              key={entry.username}
+              className="lb-table-row"
+              initial={{ opacity: 0, x: -12 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.04 }}
+            >
+              <span className="lb-rank-badge">{i + 4}</span>
+              <span className="lb-player-name">{entry.username}</span>
+              <span className="lb-wagered-val">${entry.wagered.toLocaleString()}</span>
+              <span className="lb-prize-val">${entry.reward.toLocaleString()}</span>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
 
-function Community() {
-  const socials = [
-    { label: "Discord", icon: MessageCircle, href: "https://discord.com/" },
-    { label: "Telegram", icon: Send, href: "https://telegram.org/" },
-    { label: "Kick", icon: Radio, href: "https://kick.com/muta11" }
-  ];
+
+
+// Icon mapping for social links
+const SOCIAL_ICONS = {
+  Discord: MessageCircle,
+  Telegram: Send,
+  Kick: Radio,
+  Twitter: Send,
+};
+
+function Community({ socials }) {
+  const socialItems = socials.map((s) => ({
+    ...s,
+    icon: SOCIAL_ICONS[s.label] || ExternalLink,
+  }));
   return (
     <section id="community" className="section-shell">
       <div className="community-band">
@@ -415,7 +469,7 @@ function Community() {
           <h2 className="mt-3 text-3xl font-black uppercase text-white sm:text-5xl">Follow the glow</h2>
         </div>
         <div className="flex flex-wrap justify-center gap-3">
-          {socials.map((social) => {
+          {socialItems.map((social) => {
             const Icon = social.icon;
             return (
               <a key={social.label} className="social-button" href={social.href} target="_blank" rel="noreferrer">
@@ -448,6 +502,7 @@ function Footer() {
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const { stats, games, wins, socials, partners } = useMutaData();
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 1200);
@@ -462,10 +517,10 @@ export default function App() {
         <Nav />
         <Hero />
         <LiveStream />
-        <StatsPanel />
-        <Games />
-        <BigWins />
-        <Community />
+        <StatsPanel stats={stats} />
+        <Games games={games} />
+        <Leaderboard partners={partners} />
+        <Community socials={socials} />
         <Footer />
       </main>
     </>
