@@ -11,6 +11,7 @@ const PARTNERS = [
     code: "MUTA",
     leaderboardTotal: 11000,
     leaderboardUrl: "https://muta.bet/leaderboard/shuffle",
+    image: "/shuffle.png",
   },
   {
     name: "PackDraw",
@@ -18,6 +19,7 @@ const PARTNERS = [
     code: "MUTA",
     leaderboardTotal: 3010,
     leaderboardUrl: "https://muta.bet/leaderboard/packdraw",
+    image: "/packdraw.png",
   },
   {
     name: "SkinRave",
@@ -25,6 +27,7 @@ const PARTNERS = [
     code: "MUTA",
     leaderboardTotal: 2000,
     leaderboardUrl: "https://muta.bet/leaderboard/skinrave",
+    image: "/skinrave.png",
   },
   {
     name: "Dejen",
@@ -32,6 +35,7 @@ const PARTNERS = [
     code: "MUTA",
     leaderboardTotal: 5000,
     leaderboardUrl: "https://muta.bet/leaderboard/dejen",
+    image: "/dejen.png",
   },
 ];
 
@@ -115,6 +119,7 @@ export function getGames() {
     gradient: gradients[index % gradients.length],
     url: partner.url,
     code: partner.code,
+    image: partner.image,
   }));
 }
 
